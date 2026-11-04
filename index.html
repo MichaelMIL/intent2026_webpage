@@ -46,6 +46,7 @@
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -275,6 +276,53 @@
     color: var(--muted);
     font-size: 13px;
     text-align: center;
+  }
+
+  /* ---------- phone layout ---------- */
+  @media (max-width: 600px) {
+    .wrap { padding: 12px 8px 32px; }
+    .machine { padding: 12px; border-radius: 14px; }
+    .top { gap: 12px; margin-bottom: 12px; }
+    .tag { font-size: 11px; padding: 3px 8px; }
+    h1 { margin: 10px 0 2px; }
+    .sub { font-size: 12px; }
+    .led {
+      flex: 1 1 100%;
+      min-height: 0;
+      padding: 10px 12px;
+      font-size: 12px;
+      letter-spacing: 0.14em;
+    }
+    .led .line { white-space: normal; }
+    .glass { padding: 10px; border-radius: 10px; }
+    .grid { gap: 10px; grid-template-columns: 1fr; }
+    .slot { padding: 12px 56px 30px 14px; }
+    .slot .name { font-size: 17px; margin: 8px 0 0; }
+    .slot .alias { font-size: 12px; min-height: 0; }
+    .slot .alias:empty { display: none; }
+    .slot .price { top: 12px; right: 10px; font-size: 10px; }
+    .slot .li { right: 10px; bottom: 22px; width: 30px; height: 30px; }
+    .slot .coil { bottom: 8px; height: 12px; }
+    .panel {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .keypad {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      width: 100%;
+    }
+    .key { width: auto; height: 44px; font-size: 15px; }
+    .coin { gap: 12px; }
+    .coinslot { flex: 0 0 auto; }
+    .coin p { font-size: 12px; }
+    .theme { width: 100%; padding: 10px; }
+    .flap { padding: 10px 8px; font-size: 11px; letter-spacing: 0.12em; }
+    .machine.jackpot .flap { font-size: 13px; word-break: break-all; }
+    .sticker { text-align: center; }
+    footer { font-size: 12px; }
   }
 </style>
 </head>
