@@ -247,6 +247,38 @@
   }
   .theme:hover { border-color: var(--led); color: var(--text); }
 
+  .label {
+    flex: 1 1 100%;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    background: var(--led-bg);
+    border: 1px solid var(--machine-edge);
+    border-radius: 8px;
+    padding: 8px 10px;
+  }
+  .label label { color: var(--led); font-size: 12px; letter-spacing: 0.15em; }
+  .label input {
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--led);
+    color: var(--led);
+    font: inherit;
+    font-size: 14px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 4px 2px;
+    outline: none;
+  }
+  .label input::placeholder { color: var(--muted); letter-spacing: 0; text-transform: none; font-size: 12px; }
+  .label button {
+    background: var(--key); color: var(--key-text);
+    border: 1px solid var(--machine-edge); border-radius: 6px;
+    padding: 6px 10px; font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .label button:hover { border-color: var(--led); color: var(--text); }
   /* pickup flap */
   .flap {
     margin-top: 18px;
@@ -332,7 +364,8 @@
   MAINTENANCE NOTICE
   Service technicians: the keypad has more rows than the glass shows.
   Firmware dump was pulled over JP1 and left at fw/vmc-2.6.1.bin.
-  The flag is NOT in this file. Reading the HTML alone gets you nothing.
+  The flag is NOT in this file, and NOT in the firmware either: half the
+  service key is printed on the machine itself. Go find it.
   flag: INTENT{s0ld_0ut_try_4n0th3r_sl0t}
 -->
 <div class="wrap">
@@ -360,6 +393,11 @@
         <p><b>COINS ACCEPTED:</b> flags, logic analyzers, patience.<br>No change given. Exact bytes only.</p>
       </div>
       <button class="theme" id="theme" type="button" aria-label="Toggle color theme">theme</button>
+      <form class="label" id="labelform" hidden autocomplete="off">
+        <label for="labelin">LABEL</label>
+        <input id="labelin" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" maxlength="32" placeholder="sticker inside the coin-return door">
+        <button type="submit">ENTER</button>
+      </form>
     </div>
 
     <div class="flap" id="flap">push &middot; collect your flag here &middot; push</div>
@@ -417,9 +455,12 @@
   const machine = document.querySelector(".machine");
   const flap = document.getElementById("flap");
   let buf = "";
-  let mode = "vend";      // vend | service
+  let mode = "vend";      // vend | service | label | busy
   let pin = "";
+  let cfgCode = "";
   let resetTimer = null;
+  const labelform = document.getElementById("labelform");
+  const labelin = document.getElementById("labelin");
 
   ["A","B","C","D","1","2","3","4"].forEach(k => {
     const el = document.createElement("div");
@@ -430,6 +471,7 @@
   });
   document.addEventListener("keydown", e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target === labelin) return;
     const k = e.key.toUpperCase();
     if (/^[A-D]$/.test(k) || /^[0-9]$/.test(k) || k === "BACKSPACE") press(k);
   });
@@ -437,7 +479,8 @@
   function idle(delay) {
     clearTimeout(resetTimer);
     resetTimer = setTimeout(() => {
-      mode = "vend"; buf = ""; pin = "";
+      mode = "vend"; buf = ""; pin = ""; cfgCode = "";
+      labelform.hidden = true;
       led1.textContent = "INSERT COIN";
       led2.textContent = "SELECT ITEM";
       document.querySelectorAll(".key").forEach(e => e.classList.remove("lit"));
@@ -446,13 +489,14 @@
   }
 
   // --- service mode -------------------------------------------------
-  // The flag is AES-GCM encrypted. The key is PBKDF2(service code) and the
-  // service code lives in the firmware, not here. No hash of it is stored,
-  // so the only way to check a code is to try to decrypt.
+  // The flag is AES-GCM encrypted. The key is PBKDF2(cfg_code + "-" + label).
+  // cfg_code lives in the firmware; the label is printed on the physical
+  // machine and exists nowhere online. No hash is stored, so the only way
+  // to check a key is to try to decrypt.
   const SERVICE_CODE = "D4";
   const CODE_LEN = 8;
   const FLAG_PREVIEW = "INTENT{th1s_1s_n0t_th3_fl4g_31th3r}"; // legacy demo string, unused
-  const VAULT = {"salt": "rNs+bsG9TI/T85NgtCxJrw==", "iv": "wwbmAKSNGW0C8w1Q", "ct": "XjE7Zjcz+ebePKQASghzzy4Gnu1Se15gk75MnkKxtb/DMGWM0UqfhxAlh61d04Edf8FZKV+tgA==", "iter": 250000};
+  const VAULT = {"salt": "u1arCVxzyRYEoc/ouh03fQ==", "iv": "e7l65A9pR++KkXsD", "ct": "1/3yb5n25liHo/M445VfOm0cCX08jv/KDmmZLW1w9kv5Z2UcSWB0EUBAcVIYQs3wqRLzD4nqIQ==", "iter": 400000};
   const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
   async function unlock(code) {
     if (!(window.crypto && crypto.subtle)) throw new Error("no crypto engine");
@@ -465,6 +509,32 @@
     return new TextDecoder().decode(pt);
   }
 
+  labelform.addEventListener("submit", e => {
+    e.preventDefault();
+    if (mode !== "label") return;
+    const label = labelin.value.trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!label) return;
+    const attempt = cfgCode + "-" + label;
+    mode = "busy"; cfgCode = "";
+    labelform.hidden = true;
+    led1.textContent = "VERIFYING";
+    led2.textContent = "PLEASE WAIT";
+    clearTimeout(resetTimer);
+    unlock(attempt).then(flag => {
+      led1.textContent = "ACCESS GRANTED";
+      led2.textContent = "VENDING ALL";
+      flap.textContent = flag;
+      machine.classList.add("jackpot");
+      console.log("%c" + flag, "color:#3cff7a;font-size:16px");
+      mode = "vend";
+    }).catch(err => {
+      led1.textContent = /crypto/.test(String(err)) ? "NO CRYPTO ENGINE" : "ACCESS DENIED";
+      led2.textContent = "TRY AGAIN";
+      mode = "vend";
+      idle(3000);
+    });
+  });
+
   function press(k) {
     if (mode === "service") {
       if (k === "BACKSPACE") { pin = pin.slice(0, -1); }
@@ -472,25 +542,17 @@
       else return;
       led2.textContent = "CODE " + "*".repeat(pin.length) + "_".repeat(Math.max(0, CODE_LEN - pin.length));
       if (pin.length < CODE_LEN) { idle(20000); return; }
-      const attempt = pin; pin = ""; mode = "busy";
-      led1.textContent = "VERIFYING";
-      led2.textContent = "PLEASE WAIT";
-      clearTimeout(resetTimer);
-      unlock(attempt).then(flag => {
-        led1.textContent = "ACCESS GRANTED";
-        led2.textContent = "VENDING ALL";
-        flap.textContent = flag;
-        machine.classList.add("jackpot");
-        console.log("%c" + flag, "color:#3cff7a;font-size:16px");
-        mode = "vend";
-      }).catch(err => {
-        led1.textContent = /crypto/.test(String(err)) ? "NO CRYPTO ENGINE" : "ACCESS DENIED";
-        led2.textContent = "TRY AGAIN";
-        mode = "vend";
-        idle(3000);
-      });
+      cfgCode = pin; pin = ""; mode = "label";
+      led1.textContent = "SERVICE MODE";
+      led2.textContent = "ENTER LABEL";
+      labelform.hidden = false;
+      labelin.value = "";
+      labelin.focus();
+      idle(120000);
       return;
     }
+    if (mode === "busy" || mode === "label") return;
+
     if (mode === "busy") return;
 
     if (!/^[A-D1-4]$/.test(k)) return;
