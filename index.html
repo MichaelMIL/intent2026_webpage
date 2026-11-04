@@ -25,12 +25,17 @@
     --coil: #b8c4bc;
     --key: #1f2f27;
     --key-text: #cfe0d4;
+    --accent: #3cff7a;                 /* green for text/outlines on page surfaces */
+    --glow: 0 0 10px rgba(60,255,122,0.35);
+    --glow-box: 0 0 18px rgba(60,255,122,0.35);
+    --flap-bg: #000;
+    --flap-text: #8fb3a0;
   }
   :root[data-theme="light"] {
     --bg: #f3f6f2;
-    --trace-soft: rgba(47, 138, 94, 0.22);
-    --machine: #e3ebe4;
-    --machine-edge: #bfd0c4;
+    --trace-soft: rgba(47, 138, 94, 0.11);
+    --machine: #e4ece5;
+    --machine-edge: #b5c9bb;
     --copper: #b57b1b;
     --copper-soft: rgba(181, 123, 27, 0.14);
     --text: #10201a;
@@ -44,6 +49,11 @@
     --coil: #6b7f74;
     --key: #ffffff;
     --key-text: #2b4536;
+    --accent: #15803d;
+    --glow: none;
+    --glow-box: 0 0 0 3px rgba(21,128,61,0.18);
+    --flap-bg: #1b2a22;
+    --flap-text: #b7d3c2;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -94,7 +104,7 @@
     margin: 12px 0 4px;
     line-height: 1.15;
   }
-  h1 span { color: var(--led); text-shadow: 0 0 10px rgba(60,255,122,0.35); }
+  h1 span { color: var(--accent); text-shadow: var(--glow); }
   .sub { color: var(--muted); margin: 0; font-size: 14px; }
 
   /* dot-matrix LED display */
@@ -220,7 +230,7 @@
     font-size: 13px;
     user-select: none;
   }
-  .key.lit { color: var(--led); border-color: var(--led); box-shadow: 0 0 8px rgba(60,255,122,0.35); }
+  .key.lit { color: var(--accent); border-color: var(--accent); box-shadow: var(--glow-box); }
   .coin {
     flex: 1 1 200px;
     display: flex;
@@ -245,7 +255,7 @@
     font-size: 12px;
     cursor: pointer;
   }
-  .theme:hover { border-color: var(--led); color: var(--text); }
+  .theme:hover { border-color: var(--accent); color: var(--text); }
   .theme-top { display: none; }
   @media (max-width: 600px) { .theme-top { display: inline-block; } }
 
@@ -285,12 +295,12 @@
   /* pickup flap */
   .flap {
     margin-top: 18px;
-    background: #000;
+    background: var(--flap-bg);
     border: 2px solid var(--machine-edge);
     border-radius: 8px;
     padding: 10px 16px;
     text-align: center;
-    color: var(--muted);
+    color: var(--flap-text);
     font-size: 12px;
     letter-spacing: 0.3em;
     text-transform: uppercase;
@@ -305,7 +315,7 @@
     color: var(--muted);
     opacity: 0.45;
   }
-  .machine.jackpot .slot { outline: 2px solid var(--led); }
+  .machine.jackpot .slot { outline: 2px solid var(--accent); }
   .machine.jackpot .flap { color: var(--led); text-shadow: 0 0 8px rgba(60,255,122,0.6); letter-spacing: 0.08em; text-transform: none; font-size: 15px; }
   footer {
     margin-top: 24px;
@@ -315,7 +325,7 @@
   }
 
   /* ---------- end scene ---------- */
-  .slot.vend { outline: 2px solid var(--led); box-shadow: 0 0 18px rgba(60,255,122,0.35); }
+  .slot.vend { outline: 2px solid var(--accent); box-shadow: var(--glow-box); }
   .slot.vend .coil { animation: coilspin 0.7s linear infinite; opacity: 0.9; }
   .slot.vend .name, .slot.vend .alias { animation: drop 0.9s cubic-bezier(.3,1.4,.5,1) both; }
   @keyframes coilspin { from { background-position: 0 0; } to { background-position: 14px 0; } }
@@ -715,7 +725,7 @@
     const slot = document.querySelector('.slot[data-code="' + buf + '"]');
     document.querySelectorAll(".slot").forEach(s => s.style.outline = "");
     if (slot) {
-      slot.style.outline = "2px solid var(--led)";
+      slot.style.outline = "2px solid var(--accent)";
       led2.textContent = "VENDING " + slot.querySelector(".name").textContent;
     } else {
       led2.textContent = "SOLD OUT";
