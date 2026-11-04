@@ -158,6 +158,19 @@
   }
   .slot .name { font-size: 19px; font-weight: 700; margin: 10px 0 2px; }
   .slot .alias { font-size: 13px; color: var(--copper); min-height: 1.3em; }
+  .slot .li {
+    position: absolute;
+    right: 12px; bottom: 34px;
+    width: 26px; height: 26px;
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 700;
+    text-decoration: none;
+    color: var(--slot);
+    background: var(--copper);
+    border-radius: 4px;
+    z-index: 1;
+  }
+  .slot .li:hover { background: var(--led); color: var(--led-bg); }
   /* spiral coil along the bottom of every slot */
   .slot .coil {
     position: absolute;
@@ -290,12 +303,12 @@
 
 <script>
   const team = [
-    { name: "Idan Ben Moshe",  alias: "I.B.M" },
-    { name: "Matar Maoz",      alias: "" },
-    { name: "Benny Mizels",    alias: "" },
-    { name: "Michael Mark",    alias: "" },
-    { name: "Mattar Bernhard", alias: "'t' * 2" },
-    { name: "Tomer Zait",      alias: "" },
+    { name: "Idan Ben Moshe",  alias: "I.B.M",   linkedin: "https://www.linkedin.com/in/idan-ben-moshe-02388a2b9" },
+    { name: "Matar Maoz",      alias: "",        linkedin: "https://www.linkedin.com/in/matar-maoz-aa40031a5" },
+    { name: "Benny Mizels",    alias: "",        linkedin: "" },
+    { name: "Michael Mark",    alias: "",        linkedin: "https://www.linkedin.com/in/michael-mark-7242971b9" },
+    { name: "Mattar Bernhard", alias: "'t' * 2", linkedin: "" },
+    { name: "Tomer Zait",      alias: "",        linkedin: "" },
   ];
 
   const rows = "ABCD";
@@ -312,11 +325,19 @@
       '<span class="price">1 FLAG</span>' +
       '<div class="name"></div>' +
       '<div class="alias"></div>' +
+      '<a class="li" target="_blank" rel="noopener noreferrer">in</a>' +
       '<div class="coil" aria-hidden="true"></div>' +
       '<div class="rail" aria-hidden="true"></div>';
     slot.querySelector(".code").textContent = code;
     slot.querySelector(".name").textContent = m.name;
     slot.querySelector(".alias").textContent = m.alias;
+    const li = slot.querySelector(".li");
+    if (m.linkedin) {
+      li.href = m.linkedin;
+      li.setAttribute("aria-label", m.name + " on LinkedIn");
+    } else {
+      li.remove();
+    }
     grid.appendChild(slot);
   });
 
