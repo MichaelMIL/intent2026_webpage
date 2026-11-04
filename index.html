@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intent 2026 Hardware CTF Team</title>
+<meta name="description" content="Team members of the Hardware CTF at Intent 2026.">
+<style>
+  :root {
+    --bg: #0b1410;
+    --bg-2: #0f1c16;
+    --trace: #1f6b4a;
+    --trace-soft: rgba(31, 107, 74, 0.35);
+    --copper: #d9a441;
+    --copper-soft: rgba(217, 164, 65, 0.18);
+    --text: #e6f2ea;
+    --muted: #8fb3a0;
+    --card: #10201a;
+    --card-border: #1d3b2d;
+    --silk: #f4f4f4;
+  }
+  :root[data-theme="light"] {
+    --bg: #f3f6f2;
+    --bg-2: #e6ede5;
+    --trace: #2f8a5e;
+    --trace-soft: rgba(47, 138, 94, 0.25);
+    --copper: #b57b1b;
+    --copper-soft: rgba(181, 123, 27, 0.14);
+    --text: #10201a;
+    --muted: #4b6a58;
+    --card: #ffffff;
+    --card-border: #cfe0d4;
+    --silk: #10201a;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    line-height: 1.5;
+    min-height: 100vh;
+    background-image:
+      linear-gradient(var(--trace-soft) 1px, transparent 1px),
+      linear-gradient(90deg, var(--trace-soft) 1px, transparent 1px);
+    background-size: 28px 28px;
+    background-position: -1px -1px;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 16px 64px; }
+  header { margin-bottom: 40px; }
+  .tag {
+    display: inline-block;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--copper);
+    border: 1px solid var(--copper);
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--copper-soft);
+  }
+  h1 {
+    font-size: clamp(28px, 5vw, 44px);
+    margin: 16px 0 8px;
+    line-height: 1.15;
+  }
+  h1 span { color: var(--trace); }
+  .sub { color: var(--muted); margin: 0; }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    position: relative;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 20px 20px 18px 24px;
+    overflow: hidden;
+  }
+  .card::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 4px;
+    background: var(--copper);
+  }
+  .card .pin {
+    position: absolute;
+    right: 14px; top: 14px;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--copper);
+    background: var(--bg);
+  }
+  .card .pin::after {
+    content: "";
+    position: absolute;
+    inset: 2px;
+    border-radius: 50%;
+    background: var(--copper);
+  }
+  .idx { font-size: 12px; color: var(--muted); letter-spacing: 0.1em; }
+  .name { font-size: 20px; font-weight: 700; margin: 6px 0 2px; }
+  .alias { font-size: 13px; color: var(--copper); }
+  .alias:empty { display: none; }
+  footer {
+    margin-top: 48px;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px dashed var(--card-border);
+    padding-top: 16px;
+  }
+  .toggle {
+    float: right;
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .toggle:hover { color: var(--text); border-color: var(--trace); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <button class="toggle" id="theme" type="button" aria-label="Toggle color theme">theme</button>
+    <span class="tag">Intent 2026</span>
+    <h1>Hardware CTF <span>Team</span></h1>
+    <p class="sub">// the people behind the board</p>
+  </header>
+
+  <main class="grid" id="team"></main>
+
+  <footer>Intent 2026 &middot; Hardware CTF</footer>
+</div>
+
+<script>
+  const team = [
+    { name: "Idan Ben Moshe",  alias: "I.B.M" },
+    { name: "Matar Maoz",      alias: "" },
+    { name: "Benny Mizels",    alias: "" },
+    { name: "Michael Mark",    alias: "" },
+    { name: "Mattar Bernhard", alias: "'t' * 2" },
+    { name: "Tomer Zait",      alias: "" },
+  ];
+
+  const grid = document.getElementById("team");
+  team.forEach((m, i) => {
+    const card = document.createElement("article");
+    card.className = "card";
+    card.innerHTML =
+      '<span class="pin" aria-hidden="true"></span>' +
+      '<div class="idx">U' + String(i + 1).padStart(2, "0") + '</div>' +
+      '<div class="name"></div>' +
+      '<div class="alias"></div>';
+    card.querySelector(".name").textContent = m.name;
+    card.querySelector(".alias").textContent = m.alias;
+    grid.appendChild(card);
+  });
+
+  const root = document.documentElement;
+  const btn = document.getElementById("theme");
+  let saved = null;
+  try { saved = localStorage.getItem("theme"); } catch (e) {}
+  if (saved === "light") root.setAttribute("data-theme", "light");
+  btn.addEventListener("click", () => {
+    const light = root.getAttribute("data-theme") === "light";
+    if (light) root.removeAttribute("data-theme"); else root.setAttribute("data-theme", "light");
+    try { localStorage.setItem("theme", light ? "dark" : "light"); } catch (e) {}
+  });
+</script>
+</body>
+</html>
