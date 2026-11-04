@@ -259,6 +259,17 @@
     text-transform: uppercase;
   }
 
+  .sticker {
+    margin-top: 8px;
+    text-align: right;
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    opacity: 0.45;
+  }
+  .machine.jackpot .slot { outline: 2px solid var(--led); }
+  .machine.jackpot .flap { color: var(--led); text-shadow: 0 0 8px rgba(60,255,122,0.6); letter-spacing: 0.08em; text-transform: none; font-size: 15px; }
   footer {
     margin-top: 24px;
     color: var(--muted);
@@ -268,6 +279,11 @@
 </style>
 </head>
 <body>
+<!--
+  MAINTENANCE NOTICE
+  Service technicians: the keypad has more rows than the glass shows.
+  Firmware dump is on the debug header below (JP1). Key is the usual one.
+-->
 <div class="wrap">
   <div class="machine">
     <div class="top">
@@ -290,12 +306,23 @@
       <div class="keypad" id="keypad" aria-label="Selection keypad"></div>
       <div class="coin">
         <div class="coinslot" aria-hidden="true"></div>
+        <pre id="jp1" hidden>14 0f 01 62 00 0d 0d 16 62 34 70 6c 74 6c 73 48
+17 03 10 16 72 62 73 73 77 70 72 72 62 7a 0c 73
+48 01 0d 0b 0c 62 0f 07 01 0a 62 6c 6c 6c 6c 6c
+62 0d 09 48 09 07 1b 12 03 06 62 76 3a 70 62 6c
+6c 6c 6c 62 0d 09 62 6a 30 2d 35 31 62 01 6e 06
+62 37 2c 37 31 27 26 62 20 3b 62 2f 27 2c 37 6b
+48 11 07 10 14 0b 01 07 62 12 0b 0c 62 6c 6c 6c
+62 71 76 73 70 48 06 07 00 17 05 62 08 12 73 62
+6c 6c 6c 6c 6c 62 0e 07 03 14 07 62 0d 12 07 0c
+48</pre>
         <p><b>COINS ACCEPTED:</b> flags, logic analyzers, patience.<br>No change given. Exact bytes only.</p>
       </div>
       <button class="theme" id="theme" type="button" aria-label="Toggle color theme">theme</button>
     </div>
 
-    <div class="flap">push &middot; collect your flag here &middot; push</div>
+    <div class="flap" id="flap">push &middot; collect your flag here &middot; push</div>
+    <div class="sticker">FW 2.6.1 &middot; JP1 &middot; service: ask the source</div>
   </div>
 
   <footer>Intent 2026 &middot; Hardware CTF &middot; out of order? that's the challenge.</footer>
@@ -341,11 +368,18 @@
     grid.appendChild(slot);
   });
 
-  // keypad: A-D + 1-4, pressing a valid code lights the slot and updates the display
+  // keypad: A-D + 1-4, pressing a valid code lights the slot and updates the display.
+  // Physical keyboard works too.
   const keypad = document.getElementById("keypad");
   const led1 = document.getElementById("led1");
   const led2 = document.getElementById("led2");
+  const machine = document.querySelector(".machine");
+  const flap = document.getElementById("flap");
   let buf = "";
+  let mode = "vend";      // vend | service
+  let pin = "";
+  let resetTimer = null;
+
   ["A","B","C","D","1","2","3","4"].forEach(k => {
     const el = document.createElement("div");
     el.className = "key";
@@ -353,26 +387,82 @@
     el.addEventListener("click", () => press(k));
     keypad.appendChild(el);
   });
+  document.addEventListener("keydown", e => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toUpperCase();
+    if (/^[A-D]$/.test(k) || /^[0-9]$/.test(k)) press(k);
+  });
+
+  function idle(delay) {
+    clearTimeout(resetTimer);
+    resetTimer = setTimeout(() => {
+      mode = "vend"; buf = ""; pin = "";
+      led1.textContent = "INSERT COIN";
+      led2.textContent = "SELECT ITEM";
+      document.querySelectorAll(".key").forEach(e => e.classList.remove("lit"));
+      document.querySelectorAll(".slot").forEach(s => s.style.outline = "");
+    }, delay);
+  }
+
+  // --- service mode -------------------------------------------------
+  const SERVICE_CODE = "D4";
+  const PIN_HASH = 2085947073;
+  const VAULT = [0x7a,0x7a,0x65,0x77,0x7d,0x60,0x4a,0x54,0x41,0x07,0x02,0x6d,0x45,0x07,0x5f,0x56,0x6c,0x00,0x5d,0x5e,0x6c,0x40,0x59,0x01,0x6c,0x52,0x5d,0x06,0x54,0x47,0x4c];
+  function djb2(t) {
+    let h = 5381;
+    for (let i = 0; i < t.length; i++) h = (Math.imul(h, 33) ^ t.charCodeAt(i)) >>> 0;
+    return h >>> 0;
+  }
+  function unlock(code) {
+    return String.fromCharCode(...VAULT.map((b, i) => b ^ code.charCodeAt(i % code.length)));
+  }
+
   function press(k) {
+    if (mode === "service") {
+      if (!/^[0-9]$/.test(k)) return;
+      pin += k;
+      led2.textContent = "PIN " + "*".repeat(pin.length) + "_".repeat(Math.max(0, 4 - pin.length));
+      if (pin.length < 4) return;
+      if (djb2(pin) === PIN_HASH) {
+        const flag = unlock(pin);
+        led1.textContent = "ACCESS GRANTED";
+        led2.textContent = "VENDING ALL";
+        flap.textContent = flag;
+        machine.classList.add("jackpot");
+        console.log("%c" + flag, "color:#3cff7a;font-size:16px");
+        mode = "vend"; pin = "";
+        return;
+      }
+      led1.textContent = "ACCESS DENIED";
+      led2.textContent = "TRY AGAIN";
+      pin = "";
+      idle(3000);
+      return;
+    }
+
+    if (/^[5-9]$|^0$/.test(k)) return;
     buf = (/[A-D]/.test(k) ? k : buf + k).slice(0, 2);
     led1.textContent = "SELECTION " + buf;
     document.querySelectorAll(".key").forEach(e => e.classList.toggle("lit", buf.includes(e.textContent)));
-    if (buf.length === 2) {
-      const slot = document.querySelector('.slot[data-code="' + buf + '"]');
-      document.querySelectorAll(".slot").forEach(s => s.style.outline = "");
-      if (slot) {
-        slot.style.outline = "2px solid var(--led)";
-        led2.textContent = "VENDING " + slot.querySelector(".name").textContent;
-      } else {
-        led2.textContent = "SOLD OUT";
-      }
-      buf = "";
-      setTimeout(() => {
-        led1.textContent = "INSERT COIN";
-        led2.textContent = "SELECT ITEM";
-        document.querySelectorAll(".key").forEach(e => e.classList.remove("lit"));
-      }, 3000);
+    if (buf.length < 2) return;
+
+    if (buf === SERVICE_CODE) {
+      mode = "service"; buf = ""; pin = "";
+      led1.textContent = "SERVICE MODE";
+      led2.textContent = "PIN ____";
+      idle(20000);
+      return;
     }
+    const slot = document.querySelector('.slot[data-code="' + buf + '"]');
+    document.querySelectorAll(".slot").forEach(s => s.style.outline = "");
+    if (slot) {
+      slot.style.outline = "2px solid var(--led)";
+      led2.textContent = "VENDING " + slot.querySelector(".name").textContent;
+    } else {
+      led2.textContent = "SOLD OUT";
+    }
+    buf = "";
+    idle(3000);
   }
 
   const root = document.documentElement;
