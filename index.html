@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Intent 2026 Hardware CTF Team</title>
 <meta name="description" content="Team members of the vending-machine themed Hardware CTF at Intent 2026.">
+<meta name="flag" content="INTENT{c0in_r3turn3d_n0_s4le}">
 <style>
   :root {
     --bg: #0b1410;
@@ -330,7 +331,9 @@
 <!--
   MAINTENANCE NOTICE
   Service technicians: the keypad has more rows than the glass shows.
-  Firmware dump is on the debug header below (JP1). Key is the usual one.
+  Firmware dump was pulled over JP1 and left at fw/vmc-2.6.1.bin.
+  The flag is NOT in this file. Reading the HTML alone gets you nothing.
+  flag: INTENT{s0ld_0ut_try_4n0th3r_sl0t}
 -->
 <div class="wrap">
   <div class="machine">
@@ -354,16 +357,6 @@
       <div class="keypad" id="keypad" aria-label="Selection keypad"></div>
       <div class="coin">
         <div class="coinslot" aria-hidden="true"></div>
-        <pre id="jp1" hidden>14 0f 01 62 00 0d 0d 16 62 34 70 6c 74 6c 73 48
-17 03 10 16 72 62 73 73 77 70 72 72 62 7a 0c 73
-48 01 0d 0b 0c 62 0f 07 01 0a 62 6c 6c 6c 6c 6c
-62 0d 09 48 09 07 1b 12 03 06 62 76 3a 70 62 6c
-6c 6c 6c 62 0d 09 62 6a 30 2d 35 31 62 01 6e 06
-62 37 2c 37 31 27 26 62 20 3b 62 2f 27 2c 37 6b
-48 11 07 10 14 0b 01 07 62 12 0b 0c 62 6c 6c 6c
-62 71 76 73 70 48 06 07 00 17 05 62 08 12 73 62
-6c 6c 6c 6c 6c 62 0e 07 03 14 07 62 0d 12 07 0c
-48</pre>
         <p><b>COINS ACCEPTED:</b> flags, logic analyzers, patience.<br>No change given. Exact bytes only.</p>
       </div>
       <button class="theme" id="theme" type="button" aria-label="Toggle color theme">theme</button>
@@ -438,7 +431,7 @@
   document.addEventListener("keydown", e => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
     const k = e.key.toUpperCase();
-    if (/^[A-D]$/.test(k) || /^[0-9]$/.test(k)) press(k);
+    if (/^[A-D]$/.test(k) || /^[0-9]$/.test(k) || k === "BACKSPACE") press(k);
   });
 
   function idle(delay) {
@@ -453,42 +446,54 @@
   }
 
   // --- service mode -------------------------------------------------
+  // The flag is AES-GCM encrypted. The key is PBKDF2(service code) and the
+  // service code lives in the firmware, not here. No hash of it is stored,
+  // so the only way to check a code is to try to decrypt.
   const SERVICE_CODE = "D4";
-  const PIN_HASH = 2085947073;
-  const VAULT = [0x7a,0x7a,0x65,0x77,0x7d,0x60,0x4a,0x54,0x41,0x07,0x02,0x6d,0x45,0x07,0x5f,0x56,0x6c,0x00,0x5d,0x5e,0x6c,0x40,0x59,0x01,0x6c,0x52,0x5d,0x06,0x54,0x47,0x4c];
-  function djb2(t) {
-    let h = 5381;
-    for (let i = 0; i < t.length; i++) h = (Math.imul(h, 33) ^ t.charCodeAt(i)) >>> 0;
-    return h >>> 0;
-  }
-  function unlock(code) {
-    return String.fromCharCode(...VAULT.map((b, i) => b ^ code.charCodeAt(i % code.length)));
+  const CODE_LEN = 8;
+  const FLAG_PREVIEW = "INTENT{th1s_1s_n0t_th3_fl4g_31th3r}"; // legacy demo string, unused
+  const VAULT = {"salt": "rNs+bsG9TI/T85NgtCxJrw==", "iv": "wwbmAKSNGW0C8w1Q", "ct": "XjE7Zjcz+ebePKQASghzzy4Gnu1Se15gk75MnkKxtb/DMGWM0UqfhxAlh61d04Edf8FZKV+tgA==", "iter": 250000};
+  const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+  async function unlock(code) {
+    if (!(window.crypto && crypto.subtle)) throw new Error("no crypto engine");
+    const enc = new TextEncoder();
+    const base = await crypto.subtle.importKey("raw", enc.encode(code), "PBKDF2", false, ["deriveKey"]);
+    const key = await crypto.subtle.deriveKey(
+      { name: "PBKDF2", salt: b64(VAULT.salt), iterations: VAULT.iter, hash: "SHA-256" },
+      base, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+    const pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: b64(VAULT.iv) }, key, b64(VAULT.ct));
+    return new TextDecoder().decode(pt);
   }
 
   function press(k) {
     if (mode === "service") {
-      if (!/^[0-9]$/.test(k)) return;
-      pin += k;
-      led2.textContent = "PIN " + "*".repeat(pin.length) + "_".repeat(Math.max(0, 4 - pin.length));
-      if (pin.length < 4) return;
-      if (djb2(pin) === PIN_HASH) {
-        const flag = unlock(pin);
+      if (k === "BACKSPACE") { pin = pin.slice(0, -1); }
+      else if (/^[A-D1-4]$/.test(k)) { pin += k; }
+      else return;
+      led2.textContent = "CODE " + "*".repeat(pin.length) + "_".repeat(Math.max(0, CODE_LEN - pin.length));
+      if (pin.length < CODE_LEN) { idle(20000); return; }
+      const attempt = pin; pin = ""; mode = "busy";
+      led1.textContent = "VERIFYING";
+      led2.textContent = "PLEASE WAIT";
+      clearTimeout(resetTimer);
+      unlock(attempt).then(flag => {
         led1.textContent = "ACCESS GRANTED";
         led2.textContent = "VENDING ALL";
         flap.textContent = flag;
         machine.classList.add("jackpot");
         console.log("%c" + flag, "color:#3cff7a;font-size:16px");
-        mode = "vend"; pin = "";
-        return;
-      }
-      led1.textContent = "ACCESS DENIED";
-      led2.textContent = "TRY AGAIN";
-      pin = "";
-      idle(3000);
+        mode = "vend";
+      }).catch(err => {
+        led1.textContent = /crypto/.test(String(err)) ? "NO CRYPTO ENGINE" : "ACCESS DENIED";
+        led2.textContent = "TRY AGAIN";
+        mode = "vend";
+        idle(3000);
+      });
       return;
     }
+    if (mode === "busy") return;
 
-    if (/^[5-9]$|^0$/.test(k)) return;
+    if (!/^[A-D1-4]$/.test(k)) return;
     buf = (/[A-D]/.test(k) ? k : buf + k).slice(0, 2);
     led1.textContent = "SELECTION " + buf;
     document.querySelectorAll(".key").forEach(e => e.classList.toggle("lit", buf.includes(e.textContent)));
@@ -497,7 +502,7 @@
     if (buf === SERVICE_CODE) {
       mode = "service"; buf = ""; pin = "";
       led1.textContent = "SERVICE MODE";
-      led2.textContent = "PIN ____";
+      led2.textContent = "CODE " + "_".repeat(CODE_LEN);
       idle(20000);
       return;
     }
