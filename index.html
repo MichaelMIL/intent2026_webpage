@@ -4,33 +4,45 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Intent 2026 Hardware CTF Team</title>
-<meta name="description" content="Team members of the Hardware CTF at Intent 2026.">
+<meta name="description" content="Team members of the vending-machine themed Hardware CTF at Intent 2026.">
 <style>
   :root {
     --bg: #0b1410;
-    --bg-2: #0f1c16;
-    --trace: #1f6b4a;
     --trace-soft: rgba(31, 107, 74, 0.35);
+    --machine: #16221c;
+    --machine-edge: #2a4034;
     --copper: #d9a441;
     --copper-soft: rgba(217, 164, 65, 0.18);
     --text: #e6f2ea;
     --muted: #8fb3a0;
-    --card: #10201a;
-    --card-border: #1d3b2d;
-    --silk: #f4f4f4;
+    --slot: #0d1a14;
+    --slot-border: #1d3b2d;
+    --glass: rgba(140, 200, 170, 0.06);
+    --led-bg: #061009;
+    --led: #3cff7a;
+    --led-dim: rgba(60, 255, 122, 0.12);
+    --coil: #b8c4bc;
+    --key: #1f2f27;
+    --key-text: #cfe0d4;
   }
   :root[data-theme="light"] {
     --bg: #f3f6f2;
-    --bg-2: #e6ede5;
-    --trace: #2f8a5e;
-    --trace-soft: rgba(47, 138, 94, 0.25);
+    --trace-soft: rgba(47, 138, 94, 0.22);
+    --machine: #e3ebe4;
+    --machine-edge: #bfd0c4;
     --copper: #b57b1b;
     --copper-soft: rgba(181, 123, 27, 0.14);
     --text: #10201a;
     --muted: #4b6a58;
-    --card: #ffffff;
-    --card-border: #cfe0d4;
-    --silk: #10201a;
+    --slot: #ffffff;
+    --slot-border: #cfe0d4;
+    --glass: rgba(47, 138, 94, 0.05);
+    --led-bg: #0a1a10;
+    --led: #3cff7a;
+    --led-dim: rgba(60, 255, 122, 0.12);
+    --coil: #6b7f74;
+    --key: #ffffff;
+    --key-text: #2b4536;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; }
@@ -46,8 +58,24 @@
     background-size: 28px 28px;
     background-position: -1px -1px;
   }
-  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 16px 64px; }
-  header { margin-bottom: 40px; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 40px 16px 64px; }
+
+  /* ---------- machine cabinet ---------- */
+  .machine {
+    background: var(--machine);
+    border: 2px solid var(--machine-edge);
+    border-radius: 18px;
+    padding: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+  }
+  .top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  .brand { flex: 1 1 320px; }
   .tag {
     display: inline-block;
     font-size: 12px;
@@ -60,84 +88,204 @@
     background: var(--copper-soft);
   }
   h1 {
-    font-size: clamp(28px, 5vw, 44px);
-    margin: 16px 0 8px;
+    font-size: clamp(26px, 5vw, 40px);
+    margin: 12px 0 4px;
     line-height: 1.15;
   }
-  h1 span { color: var(--trace); }
-  .sub { color: var(--muted); margin: 0; }
+  h1 span { color: var(--led); text-shadow: 0 0 10px rgba(60,255,122,0.35); }
+  .sub { color: var(--muted); margin: 0; font-size: 14px; }
+
+  /* dot-matrix LED display */
+  .led {
+    flex: 0 1 320px;
+    background: var(--led-bg);
+    border: 2px solid #233;
+    border-radius: 10px;
+    padding: 14px 16px;
+    color: var(--led);
+    font-size: 14px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    text-shadow: 0 0 6px rgba(60,255,122,0.6);
+    background-image: radial-gradient(var(--led-dim) 1px, transparent 1px);
+    background-size: 4px 4px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    min-height: 92px;
+  }
+  .led .line { white-space: nowrap; overflow: hidden; }
+  .led .cursor::after { content: "_"; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* ---------- glass + slots ---------- */
+  .glass {
+    background: var(--glass);
+    border: 1px solid var(--machine-edge);
+    border-radius: 12px;
+    padding: 16px;
+  }
   .grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 16px;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 14px;
   }
-  .card {
+  .slot {
     position: relative;
-    background: var(--card);
-    border: 1px solid var(--card-border);
-    border-radius: 12px;
-    padding: 20px 20px 18px 24px;
+    background: var(--slot);
+    border: 1px solid var(--slot-border);
+    border-radius: 10px;
+    padding: 16px 16px 44px;
     overflow: hidden;
   }
-  .card::before {
-    content: "";
+  .slot .code {
+    display: inline-block;
+    background: var(--led-bg);
+    color: var(--led);
+    font-size: 12px;
+    letter-spacing: 0.15em;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-shadow: 0 0 4px rgba(60,255,122,0.6);
+  }
+  .slot .price {
     position: absolute;
-    left: 0; top: 0; bottom: 0;
-    width: 4px;
-    background: var(--copper);
+    right: 12px; top: 14px;
+    font-size: 11px;
+    color: var(--copper);
+    letter-spacing: 0.1em;
   }
-  .card .pin {
+  .slot .name { font-size: 19px; font-weight: 700; margin: 10px 0 2px; }
+  .slot .alias { font-size: 13px; color: var(--copper); min-height: 1.3em; }
+  /* spiral coil along the bottom of every slot */
+  .slot .coil {
     position: absolute;
-    right: 14px; top: 14px;
-    width: 12px; height: 12px;
-    border-radius: 50%;
-    border: 2px solid var(--copper);
-    background: var(--bg);
+    left: 0; right: 0; bottom: 10px;
+    height: 16px;
+    background:
+      repeating-linear-gradient(
+        100deg,
+        transparent 0 6px,
+        var(--coil) 6px 8px,
+        transparent 8px 14px
+      );
+    opacity: 0.6;
+    -webkit-mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
+            mask: linear-gradient(90deg, transparent, #000 10%, #000 90%, transparent);
   }
-  .card .pin::after {
-    content: "";
+  .slot .rail {
     position: absolute;
-    inset: 2px;
-    border-radius: 50%;
-    background: var(--copper);
+    left: 0; right: 0; bottom: 0;
+    height: 6px;
+    background: var(--machine-edge);
   }
-  .idx { font-size: 12px; color: var(--muted); letter-spacing: 0.1em; }
-  .name { font-size: 20px; font-weight: 700; margin: 6px 0 2px; }
-  .alias { font-size: 13px; color: var(--copper); }
-  .alias:empty { display: none; }
-  footer {
-    margin-top: 48px;
-    color: var(--muted);
-    font-size: 13px;
-    border-top: 1px dashed var(--card-border);
-    padding-top: 16px;
+
+  /* ---------- control panel ---------- */
+  .panel {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 18px;
+    align-items: flex-start;
   }
-  .toggle {
-    float: right;
-    background: transparent;
-    color: var(--muted);
-    border: 1px solid var(--card-border);
+  .keypad {
+    display: grid;
+    grid-template-columns: repeat(4, 36px);
+    gap: 6px;
+  }
+  .key {
+    width: 36px; height: 36px;
+    background: var(--key);
+    color: var(--key-text);
+    border: 1px solid var(--machine-edge);
     border-radius: 6px;
-    padding: 4px 10px;
+    display: grid;
+    place-items: center;
+    font-size: 13px;
+    user-select: none;
+  }
+  .key.lit { color: var(--led); border-color: var(--led); box-shadow: 0 0 8px rgba(60,255,122,0.35); }
+  .coin {
+    flex: 1 1 200px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+  }
+  .coinslot {
+    width: 10px; height: 44px;
+    background: #000;
+    border: 2px solid var(--copper);
+    border-radius: 3px;
+  }
+  .coin p { margin: 0; font-size: 13px; color: var(--muted); }
+  .coin p b { color: var(--copper); }
+  .theme {
+    background: var(--key);
+    color: var(--key-text);
+    border: 1px solid var(--machine-edge);
+    border-radius: 6px;
+    padding: 8px 12px;
     font: inherit;
     font-size: 12px;
     cursor: pointer;
   }
-  .toggle:hover { color: var(--text); border-color: var(--trace); }
+  .theme:hover { border-color: var(--led); color: var(--text); }
+
+  /* pickup flap */
+  .flap {
+    margin-top: 18px;
+    background: #000;
+    border: 2px solid var(--machine-edge);
+    border-radius: 8px;
+    padding: 10px 16px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+  }
+
+  footer {
+    margin-top: 24px;
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <button class="toggle" id="theme" type="button" aria-label="Toggle color theme">theme</button>
-    <span class="tag">Intent 2026</span>
-    <h1>Hardware CTF <span>Team</span></h1>
-    <p class="sub">// the people behind the board</p>
-  </header>
+  <div class="machine">
+    <div class="top">
+      <div class="brand">
+        <span class="tag">Intent 2026</span>
+        <h1>Hardware CTF <span>Team</span></h1>
+        <p class="sub">// vending machine edition &middot; the people behind the board</p>
+      </div>
+      <div class="led" role="status" aria-live="polite">
+        <div class="line" id="led1">INSERT COIN</div>
+        <div class="line cursor" id="led2">SELECT ITEM</div>
+      </div>
+    </div>
 
-  <main class="grid" id="team"></main>
+    <div class="glass">
+      <main class="grid" id="team"></main>
+    </div>
 
-  <footer>Intent 2026 &middot; Hardware CTF</footer>
+    <div class="panel">
+      <div class="keypad" id="keypad" aria-label="Selection keypad"></div>
+      <div class="coin">
+        <div class="coinslot" aria-hidden="true"></div>
+        <p><b>COINS ACCEPTED:</b> flags, logic analyzers, patience.<br>No change given. Exact bytes only.</p>
+      </div>
+      <button class="theme" id="theme" type="button" aria-label="Toggle color theme">theme</button>
+    </div>
+
+    <div class="flap">push &middot; collect your flag here &middot; push</div>
+  </div>
+
+  <footer>Intent 2026 &middot; Hardware CTF &middot; out of order? that's the challenge.</footer>
 </div>
 
 <script>
@@ -150,19 +298,61 @@
     { name: "Tomer Zait",      alias: "" },
   ];
 
+  const rows = "ABCD";
   const grid = document.getElementById("team");
+  const codes = [];
   team.forEach((m, i) => {
-    const card = document.createElement("article");
-    card.className = "card";
-    card.innerHTML =
-      '<span class="pin" aria-hidden="true"></span>' +
-      '<div class="idx">U' + String(i + 1).padStart(2, "0") + '</div>' +
+    const code = rows[Math.floor(i / 3)] + ((i % 3) + 1);
+    codes.push(code);
+    const slot = document.createElement("article");
+    slot.className = "slot";
+    slot.dataset.code = code;
+    slot.innerHTML =
+      '<span class="code"></span>' +
+      '<span class="price">1 FLAG</span>' +
       '<div class="name"></div>' +
-      '<div class="alias"></div>';
-    card.querySelector(".name").textContent = m.name;
-    card.querySelector(".alias").textContent = m.alias;
-    grid.appendChild(card);
+      '<div class="alias"></div>' +
+      '<div class="coil" aria-hidden="true"></div>' +
+      '<div class="rail" aria-hidden="true"></div>';
+    slot.querySelector(".code").textContent = code;
+    slot.querySelector(".name").textContent = m.name;
+    slot.querySelector(".alias").textContent = m.alias;
+    grid.appendChild(slot);
   });
+
+  // keypad: A-D + 1-4, pressing a valid code lights the slot and updates the display
+  const keypad = document.getElementById("keypad");
+  const led1 = document.getElementById("led1");
+  const led2 = document.getElementById("led2");
+  let buf = "";
+  ["A","B","C","D","1","2","3","4"].forEach(k => {
+    const el = document.createElement("div");
+    el.className = "key";
+    el.textContent = k;
+    el.addEventListener("click", () => press(k));
+    keypad.appendChild(el);
+  });
+  function press(k) {
+    buf = (/[A-D]/.test(k) ? k : buf + k).slice(0, 2);
+    led1.textContent = "SELECTION " + buf;
+    document.querySelectorAll(".key").forEach(e => e.classList.toggle("lit", buf.includes(e.textContent)));
+    if (buf.length === 2) {
+      const slot = document.querySelector('.slot[data-code="' + buf + '"]');
+      document.querySelectorAll(".slot").forEach(s => s.style.outline = "");
+      if (slot) {
+        slot.style.outline = "2px solid var(--led)";
+        led2.textContent = "VENDING " + slot.querySelector(".name").textContent;
+      } else {
+        led2.textContent = "SOLD OUT";
+      }
+      buf = "";
+      setTimeout(() => {
+        led1.textContent = "INSERT COIN";
+        led2.textContent = "SELECT ITEM";
+        document.querySelectorAll(".key").forEach(e => e.classList.remove("lit"));
+      }, 3000);
+    }
+  }
 
   const root = document.documentElement;
   const btn = document.getElementById("theme");
